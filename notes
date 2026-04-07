@@ -1,0 +1,40 @@
+1. MCP Server refers to the program that serves context data, regardless of where it runs. 
+2. AI Host, in addition to being a host, managing MCP clients, can also spawn/manage local MCP servers. Like Claude Desktop launching the filesystem serve.
+3. MCP Gateway should be :
+    a. controlled
+    b. configurable
+    c. observable
+    c. policy aware
+    d. secure
+    e. deterministic
+    f. multi-tenant
+    g. enterprise-usable 
+    h. easily deployable
+    i. easily integratable
+    j. safe-by-default, least-privege oriented
+    k. auditable
+    l. governable
+    m. reliable 
+    n. scalable
+    o. extensible 
+    p. portable 
+    q. low-friction
+    r. traceable 
+    s. compliant
+    t. version-aware 
+    u. resilient
+    v. cost aware 
+
+
+My basic first stage:
+1. I should be able to demo that an AI host is able to get through my gateway to an MCP server. 
+AI Host → MCP Gateway → Neo4j MCP Server, with some basic features in play from the gateway like:
+a. auth
+b. basic policy
+c. logging 
+d. clean config 
+e. metrics and its dashboards
+f. tracing 
+g. security control 
+h. basic UI
+Each item could be thin but i will have all these from day1. 

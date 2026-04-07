@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Gateway Config</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <main class="mx-auto max-w-3xl px-4 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">MCP Gateway Configuration</h1>
+      <p class="mt-2 text-slate-600">Configure your gateway endpoint and startup options.</p>
+    </div>
+
+    {{if .Message}}
+    <div class="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-800">{{.Message}}</div>
+    {{end}}
+
+    <form action="/configure" method="post" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <label for="gatewayName" class="text-sm font-semibold text-slate-700">Gateway Name</label>
+      <input id="gatewayName" name="gatewayName" type="text" placeholder="cutmenot-gateway" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-cyan-500 focus:ring-2">
+
+      <label for="listenAddress" class="mt-2 text-sm font-semibold text-slate-700">Listen Address</label>
+      <input id="listenAddress" name="listenAddress" type="text" placeholder=":8080" value=":8080" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-cyan-500 focus:ring-2">
+
+      <label for="targetUrl" class="mt-2 text-sm font-semibold text-slate-700">Target MCP Server URL</label>
+      <input id="targetUrl" name="targetUrl" type="url" placeholder="http://localhost:9000" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-cyan-500 focus:ring-2">
+
+      <label for="apiKey" class="mt-2 text-sm font-semibold text-slate-700">API Key (optional)</label>
+      <input id="apiKey" name="apiKey" type="password" placeholder="Enter API key" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-cyan-500 focus:ring-2">
+
+      <label for="logLevel" class="mt-2 text-sm font-semibold text-slate-700">Log Level</label>
+      <select id="logLevel" name="logLevel" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-cyan-500 focus:ring-2">
+        <option value="debug">debug</option>
+        <option value="info" selected>info</option>
+        <option value="warn">warn</option>
+        <option value="error">error</option>
+      </select>
+
+      <button type="submit" class="mt-3 rounded-lg bg-cyan-700 px-4 py-2 font-semibold text-white hover:bg-cyan-800">Save Configuration</button>
+    </form>
+  </main>
+</body>
+</html>
