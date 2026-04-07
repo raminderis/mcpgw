@@ -22,3 +22,6 @@ air_errors.log
 
 # Local database/bootstrap script
 basic.sql
+
+# Sensitive local orchestration config
+docker-compose.yml
