@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	mcpServerEndpoint := "http://localhost:9094/mcp"
 	client := &http.Client{}
 	var sessionID string
@@ -52,7 +56,12 @@ func PostRPC(client *http.Client, endpoint, sessionID string, msg map[string]any
 	req, _ := http.NewRequest("POST", endpoint, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
-	req.SetBasicAuth("neo4j", "defeat-wartime-installations")
+	neo4jUser := os.Getenv("NEO4J_USERNAME")
+	if neo4jUser == "" {
+		neo4jUser = "neo4j"
+	}
+	neo4jPass := os.Getenv("NEO4J_PASSWORD")
+	req.SetBasicAuth(neo4jUser, neo4jPass)
 	if sessionID != "" {
 		req.Header.Set("Mcp-Session-Id", sessionID)
 	}
