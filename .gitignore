@@ -1,0 +1,24 @@
+# Go build artifacts
+*.exe
+*.test
+*.out
+
+# Local binaries and temp outputs
+/tmp/
+**/tmp/
+*.log
+
+# Environment files
+.env
+**/.env
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Air/reload artifacts
+air_errors.log
+
+# Local database/bootstrap script
+basic.sql
