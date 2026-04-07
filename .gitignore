@@ -5,6 +5,7 @@
 *.out
 
 # Local binaries and temp outputs
+./tmp
 /tmp/
 **/tmp/
 *.log
@@ -26,3 +27,6 @@ basic.sql
 
 # Sensitive local orchestration config
 docker-compose.yml
+
+# notes
+notes 
