@@ -7,10 +7,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"cutmenot.ai/mcpgw/gwsvc/cmd/neo4jClient"
 	"github.com/joho/godotenv"
 )
+
+const defaultAuthToken = "123mytoken"
 
 func main() {
 	_ = godotenv.Load()
@@ -43,7 +46,7 @@ func postRPC(client *http.Client, endpoint, sessionID string, msg map[string]any
 	req, _ := http.NewRequest("POST", endpoint, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
-	req.SetBasicAuth("neo4j", "substances-extensions-fountain")
+	req.Header.Set("Authorization", "Bearer "+resolveAuthToken())
 	if sessionID != "" {
 		req.Header.Set("Mcp-Session-Id", sessionID)
 	}
@@ -80,4 +83,11 @@ func resolveEndpoint() string {
 		port = "9090"
 	}
 	return fmt.Sprintf("http://gwsvc:%s/mcp", port)
+}
+
+func resolveAuthToken() string {
+	if token := strings.TrimSpace(os.Getenv("MCPGW_AUTH_TOKEN")); token != "" {
+		return token
+	}
+	return defaultAuthToken
 }

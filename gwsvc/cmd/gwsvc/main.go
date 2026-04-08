@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 const (
 	defaultGwsvcListenAddr  = ":9090"
 	defaultNeo4jMCPEndpoint = "http://localhost:9094/mcp"
+	defaultAISecVerifyURL   = "http://aisec:9097/verify"
 	defaultConfigFile       = "./gwsvc-config.json"
 )
 
@@ -79,7 +81,7 @@ func main() {
 
 	httpServer = &http.Server{
 		Addr:    listenAddr,
-		Handler: http.DefaultServeMux,
+		Handler: authMiddleware(http.DefaultServeMux),
 	}
 
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -96,6 +98,11 @@ func forwardToolsListToNeo4jRaw(body []byte) neo4jClient.ToolsListResult {
 		"id":      1,
 		"method":  "initialize",
 		"params":  map[string]any{},
+	})
+
+	neo4jClient.PostRPC(client, mcpServerEndpoint, sessionID, map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
 	})
 
 	_, tools := neo4jClient.PostRPC(client, mcpServerEndpoint, sessionID, map[string]any{
@@ -229,4 +236,75 @@ func handleShutdown(w http.ResponseWriter, r *http.Request) {
 			httpServer.Shutdown(ctx)
 		}
 	}()
+}
+
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+		if authHeader == "" {
+			http.Error(w, "missing authorization header", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
+			http.Error(w, "invalid authorization header", http.StatusUnauthorized)
+			return
+		}
+
+		ok, err := verifyTokenWithAISec(r.Context(), strings.TrimSpace(parts[1]))
+		if err != nil {
+			http.Error(w, "authentication service unavailable "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func verifyTokenWithAISec(ctx context.Context, token string) (bool, error) {
+	verifyURL := os.Getenv("AISEC_VERIFY_URL")
+	if verifyURL == "" {
+		verifyURL = defaultAISecVerifyURL
+	}
+
+	requestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, verifyURL, nil)
+	if err != nil {
+		return false, err
+	}
+	q := req.URL.Query()
+	q.Set("authCode", token)
+	req.URL.RawQuery = q.Encode()
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, nil
+	}
+
+	var payload struct {
+		Valid *bool `json:"valid"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		// Backward compatible with services that only return HTTP 200/401 and no body.
+		return true, nil
+	}
+
+	if payload.Valid == nil {
+		return true, nil
+	}
+
+	return *payload.Valid, nil
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -76,9 +77,10 @@ func PostRPC(client *http.Client, endpoint, sessionID string, msg map[string]any
 		fmt.Println("Session ID: ", sessionID)
 	}
 	body, _ := io.ReadAll(resp.Body)
+	payload := extractJSONPayload(body)
 	var tools ToolsListResult
 	var rpcResp JSONRPCResponse
-	if err := json.Unmarshal(body, &rpcResp); err == nil {
+	if err := json.Unmarshal(payload, &rpcResp); err == nil {
 		if rpcResp.Error != nil {
 			fmt.Println("RPC Error: ", rpcResp.Error.Message)
 		} else if rpcResp.Result != nil {
@@ -91,7 +93,40 @@ func PostRPC(client *http.Client, endpoint, sessionID string, msg map[string]any
 				fmt.Println("RESULT: ", string(rpcResp.Result))
 			}
 		}
+	} else if err := json.Unmarshal(payload, &tools); err == nil && len(tools.Tools) > 0 {
+		fmt.Println("TOOLS:")
+		for _, t := range tools.Tools {
+			fmt.Println(" Name :", t.Name, " Title: ", t.Annotations.Title)
+		}
 	}
 	// fmt.Println("RESPONSE:", string(body))
 	return sessionID, tools
+}
+
+func extractJSONPayload(body []byte) []byte {
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 {
+		return trimmed
+	}
+	if trimmed[0] == '{' || trimmed[0] == '[' {
+		return trimmed
+	}
+
+	lines := strings.Split(string(trimmed), "\n")
+	dataLines := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data != "" {
+			dataLines = append(dataLines, data)
+		}
+	}
+	if len(dataLines) == 0 {
+		return trimmed
+	}
+
+	return []byte(strings.Join(dataLines, "\n"))
 }

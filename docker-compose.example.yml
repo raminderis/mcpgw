@@ -19,6 +19,8 @@ services:
     environment:
       GWSVC_CONFIG_FILE: /shared/gwsvc-config.json
       NEO4J_MCP_ENDPOINT: http://neo4j-mcp:9094/mcp
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: YOUR_NEO4J_PASSWORD
     volumes:
       - ./:/workspace
       - gwsvc_shared_config:/shared
