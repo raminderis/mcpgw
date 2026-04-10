@@ -17,14 +17,14 @@ func main() {
 	mcpServerEndpoint := "http://localhost:9094/mcp"
 	client := &http.Client{}
 	var sessionID string
-	sessionID, _ = PostRPC(client, mcpServerEndpoint, sessionID, map[string]any{
+	sessionID, _ = PostRPC(client, mcpServerEndpoint, sessionID, "", "", map[string]any{
 		"jsonrpc": "2.0",
 		"id":      1,
 		"method":  "initialize",
 		"params":  map[string]any{},
 	})
 
-	PostRPC(client, mcpServerEndpoint, sessionID, map[string]any{
+	PostRPC(client, mcpServerEndpoint, sessionID, "", "", map[string]any{
 		"jsonrpc": "2.0",
 		"id":      2,
 		"method":  "tools/list",
@@ -51,17 +51,26 @@ type ToolsListResult struct {
 	} `json:"tools"`
 }
 
-func PostRPC(client *http.Client, endpoint, sessionID string, msg map[string]any) (string, ToolsListResult) {
+func PostRPC(client *http.Client, endpoint, sessionID, username, password string, msg map[string]any) (string, ToolsListResult) {
 	b, _ := json.Marshal(msg)
 	fmt.Println("Sent:", string(b))
 	req, _ := http.NewRequest("POST", endpoint, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
-	neo4jUser := os.Getenv("NEO4J_USERNAME")
+
+	// Use provided credentials, fall back to env vars if empty
+	neo4jUser := username
 	if neo4jUser == "" {
-		neo4jUser = "neo4j"
+		neo4jUser = os.Getenv("NEO4J_USERNAME")
+		if neo4jUser == "" {
+			neo4jUser = "neo4j"
+		}
 	}
-	neo4jPass := os.Getenv("NEO4J_PASSWORD")
+	neo4jPass := password
+	if neo4jPass == "" {
+		neo4jPass = os.Getenv("NEO4J_PASSWORD")
+	}
+
 	req.SetBasicAuth(neo4jUser, neo4jPass)
 	if sessionID != "" {
 		req.Header.Set("Mcp-Session-Id", sessionID)
@@ -72,6 +81,15 @@ func PostRPC(client *http.Client, endpoint, sessionID string, msg map[string]any
 		return sessionID, ToolsListResult{}
 	}
 	defer resp.Body.Close()
+	fmt.Println("STATUS neo4j client rpcpost:", resp.Status)
+
+	fmt.Println("HEADERS neo4j client rpcpost:")
+	for k, v := range resp.Header {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+
+	fmt.Println("Mcp-Session-Id neo4j client rpcpost:", resp.Header.Get("Mcp-Session-Id"))
+
 	if id := resp.Header.Get("Mcp-Session-Id"); id != "" {
 		sessionID = id
 		fmt.Println("Session ID: ", sessionID)
